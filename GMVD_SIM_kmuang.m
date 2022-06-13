@@ -1,12 +1,12 @@
 %% Demonstrate Real-Time Behavior
-
+%  kMUang ver 2 applying lin eq to accelerate kmuang decrease
 % ### The first output sample is determind after knowing first fifty samples of the sensors' data ###
 %  % 2021-12-24 - This new ver. MAPS accels BACK to INERT Frame
 % and uses ADAPTIVE HPF there,to isolate LIN ACCEL(opposite of alpha)
 % 307: With a lot of Magnetic Interference (Only)
 % 308: With Magnetic Interference (Only)
 % 309: With Linear acceleration added (Only)
-% clear all;
+clear all;
 close all;
 clc;
 nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
@@ -218,12 +218,12 @@ for i=1:1:N-buffSize
     %magnetInert(i,:) = qrotbak(qGA(i,:) , magnetoAvg(i,:));
 
 
-    %% Compute Gravity Vector (y = q' * m * q) in body frame
+    %% Compute Gravity Vector (y = q' * m * q)
     a4(i,:) = myQuatProd(myQuatConj(qGA(i,:)),myQuatProd(A_int,qGA(i,:)));
     a3(i,:) = a4(i,1:3); % Convert pure quaternion to 3D Vector
 
-    %% Compute Magnetic North Vector (y= q' * m * q) in body frame
-    m4(i,:) = myQuatProd(myQuatConj(qGM(i,:)),myQuatProd(M_int,qGM(i,:))); 
+    %% Compute Magnetic North Vector (y= q' * m * q)
+    m4(i,:) = myQuatProd(myQuatConj(qGM(i,:)),myQuatProd(M_int,qGM(i,:)));
     m3(i,:) = m4(i,1:3); % Convert pure quaternion to 3D Vector
 
     %% Compute error between computed and measured gravity vector
@@ -284,6 +284,9 @@ for i=1:1:N-buffSize
     accelInert(i,:) = qrotbak(qOUT1(i,:) , acceleroAvg(i,:));
     magnetInert(i,:) = qrotbak(qOUT1(i,:) , magnetoAvg(i,:));
 
+    Mag30= mean(magnetInert(1:30,:));
+    MagMag30 = sqrt(Mag30 * (Mag30'));
+
 
     %***************COMMENT FOR AB
     %The version that is effectively used is control by the variable NANN
@@ -303,11 +306,22 @@ for i=1:1:N-buffSize
     % Map the current magnetometer measurement back to inertial frame
     m0i = mapBtoI(qOUT1(i,:),magnetoAvg(i,:));   %m3(i,:) contains the "m0" in formulas
     coskmuang = ( dot(m0i,M_int(1:3))  ) / ( (norm(m0i)) * (norm(M_int(1:3))) );
-    % coskmuang = ( dot(m0i,MINTM(i,:))  ) / ( (norm(m0i)) * (norm(MINTM(i,:))) );
+    cosk2 = (coskmuang + 1)/2;
+    slopekmua = 2;
+    km1 = (-1 * slopekmua) * ( acos(coskmuang) )  + 1;
+    km2 = (1+ km1)/2;
+    kmuang(i) =  ( km2 + (abs(km2)))/2;
 
-    kmuang(i) = coskmuang;  %(coskmuang + 1)/2;
-%     kmuang(i) = (coskmuang + 1)/2;
+    % r = 1;
+    % p = 1;
+    % kmuA = (-r * log( (p*(1 - cosk2)))); % r, p are adjustable parameters
+    %  % default p=r = 1
+    % kmuang(i) = kmuA;
 
+
+
+
+    % kmuang(i) = (coskmuang + 1)/2;
 
 end
 
@@ -329,7 +343,15 @@ end
 % Plot the accelerations mapped back to Inert Frame {AB Jan 2022}
 % figure; plot(accelInert);
 % figure; plot(magnetInert);
-% minertmag = my3dvnorm(magnetInert);
+minertmag = my3dvnorm(magnetInert);
+NMagnitudeMagInert = minertmag / MagMag30;
+angchg = anginertchg(magnetInert);
+Magpenalty = NMagnitudeMagInert' .* angchg;
+KM1 =  1 - Magpenalty;
+KM = (KM1 + abs(KM1) )/2;
+figure; plot(KM, 'r');title('KM')
+
+
 % figure; plot(minertmag);
 % numvects = varrowtrc(magnetInert);
 
@@ -339,7 +361,7 @@ title('kmu angle'); grid on;
 % Now plot mu frm recording and kmuang together
 figure;
 plot(mu4plot); hold; plot(kmuang,'r');hold off; grid on;
-title(' mu frm record in BLUE and kmuang in RED');
+title(' mu form record in BLUE and kmuang in RED');
 
 
 
@@ -422,3 +444,5 @@ title(' mu frm record in BLUE and kmuang in RED');
 %     linkaxes(sp,'x');
 %
 %
+
+

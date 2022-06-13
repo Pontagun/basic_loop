@@ -339,7 +339,6 @@ minertmag = my3dvnorm(magnetInert);
 % figure; plot(vectoaxis);
 
 % obtining normalized magnitude of Magnetic mapped to inertial frame
-display('test point 1')
 %% Figure 3
 % NMagnitudeMagInert = minertmag / MagMag30;
 NMagnitudeMagInert = minertmag / 1;
@@ -354,9 +353,7 @@ Magpenalty = NMagnitudeMagInert' .* angchg;
 figure; plot(Magpenalty, 'r');title('Magpenalty')
 %% Figure 6
 % KM =  (-1) * (log( ones(size(Magpenalty)) - Magpenalty));
-KM1 =  1 - Magpenalty;
-KM = (KM1 + abs(KM1) )/2;
-figure; plot(KM, 'r');title('KM')
+MagMag30
 
 % figure; plot(hpfax); hold on; plot(hpfay, 'r'); plot(hpfaz,'g')
 
