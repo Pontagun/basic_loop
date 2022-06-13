@@ -14,9 +14,10 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 %% Read recording data from file
 [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha,mu] = readRecordingFile('Data001.txt');
 mu4plot = mu;  % Because "mu" is changed later in the program
+mufake = zeros(size(mu));
+clear mu;
 % figure; plot( ((mu4plot * 6)-3),'m');
-figure;plot(mu4plot); grid on;
-title('mu from the recorded file')
+
 
 % FROM AB 2021 08 15- to study dT variance
 % figure; %subplot(2,1,1);plot(t);grid;subplot(2,1,2);
@@ -272,7 +273,7 @@ for i=1:1:N-buffSize
     qOUT0(i,:) = QSLERP(qGM(i,:),qGA(i,:),alpha(i)); %Original Ong's
 
     %edit by Nann 8/11/2021
-    qSM(i,:) = QSLERP(qG(i,:),qGM(i,:),mu(i));
+    qSM(i,:) = QSLERP(qG(i,:),qGM(i,:),mufake(i));
     qSA(i,:) = QSLERP(qG(i,:),qGA(i,:),alpha(i));
     qOUT1(i,:) = QSLERP(qSM(i,:),qSA(i,:),alpha(i));
 
@@ -349,21 +350,47 @@ angchg = anginertchg(magnetInert);
 Magpenalty = NMagnitudeMagInert' .* angchg;
 KM1 =  1 - Magpenalty;
 KM = (KM1 + abs(KM1) )/2;
-figure; plot(KM, 'r');title('KM')
+
+tiledlayout(5, 1)
+ax1 = nexttile;
+plot(ax1, KM, 'r');
+title('kmu magnitude');
+% figure; plot(KM, 'r');title('KM')
 
 
 % figure; plot(minertmag);
 % numvects = varrowtrc(magnetInert);
-
-figure; plot(kmuang);
+ax2 = nexttile;
+plot(ax2, kmuang);
 title('kmu angle'); grid on;
 
+
+ax3 = nexttile;
+plot(ax3, mu4plot); grid on;
+title('mu from the recorded file')
 % Now plot mu frm recording and kmuang together
-figure;
-plot(mu4plot); hold; plot(kmuang,'r');hold off; grid on;
-title(' mu form record in BLUE and kmuang in RED');
+% figure;
+% plot(mu4plot); hold; plot(kmuang,'r');hold off; grid on;
+% title(' mu form record in BLUE and kmuang in RED');
+
+ax4 = nexttile;
+plot(ax4, (kmuang+KM)/2); grid on;
+title('avg mu')
+
+r = 1;
+p = 1;
+kmua = kmuafunct(kmuang, 1, 1);
+ax5 = nexttile;
+plot(ax5, (kmuang.*KM)+0.5); grid on;
+title('kmua')
 
 
+plot(qOUT1);
+
+% kmub = kmubfunct(kmuang, 1, 1);
+% ax6 = nexttile;
+% plot(ax6, kmub); grid on;
+% title('kmub');
 
 % figure; plot(hpfax); hold on; plot(hpfay, 'r'); plot(hpfaz,'g')
 

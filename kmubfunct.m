@@ -6,16 +6,17 @@
 %
 % SYNTAX: kmub = kmubfunct(r,p);
 %
-function kmub = kmubfunct(r,p);
+function kmub = kmubfunct(d, r,p);
 
 % heightscale = 4.605 * r ;
 % create values of cosine from 0 to, every 0.01
-cosk2 = linspace(0,100,101) /100;
+% cosk2 = linspace(0,100,101) /100;
+cosk2 = d;
 % NOW RECOVERING THE ANGLE" (all 101 values)
 kang = acos(cosk2);
 kmub = zeros(size(cosk2));
 % apply the function
-for n=1:101
+for n=1:size(d)
     kmub(n) = (-r) * log(p * kang(n)); 
     
     % Scale it
@@ -23,10 +24,11 @@ for n=1:101
     
 end
  % open a new figure
- figure;
- % Plot the trace
- plot(kang,kmub); grid on;
- xlabel('angle in radians'); ylabel('resulting kMUang B')
- % axis([0,1,0,inf]);
+%  figure;
+%  % Plot the trace
+% %  plot(kang,kmub); grid on;
+%  plot(kmub); grid on;
+%  xlabel('angle in radians'); ylabel('resulting kMUang B')
+%  % axis([0,1,0,inf]);
     
 end
