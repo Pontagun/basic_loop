@@ -6,7 +6,6 @@
 % 307: With a lot of Magnetic Interference (Only)
 % 308: With Magnetic Interference (Only)
 % 309: With Linear acceleration added (Only)
-clear all;
 close all;
 clc;
 nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
@@ -14,8 +13,15 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 %% Read recording data from file
 [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha,mu] = readRecordingFile('Data001.txt');
 mu4plot = mu;  % Because "mu" is changed later in the program
-mufake = zeros(size(mu));
-clear mu;
+
+if exist('kmuang', 'var') && exist('KM', 'var')
+    mufake = circshift(kmuang_avg',[0,-1])';
+else
+    mufake = mu;
+    mufake(1408:3099, :) = 0;
+    disp('mufake is mu from reading, execute program again to remove 0');
+end
+
 % figure; plot( ((mu4plot * 6)-3),'m');
 
 
@@ -89,6 +95,9 @@ qOUT0 = zeros(N,4);
 qSA = zeros(N,4);
 qSM = zeros(N,4);
 qOUT1 = zeros(N,4);
+
+qNorm = zeros(N);
+
 SlerpM = zeros(N,4);
 SlerpA = zeros(N,4);
 
@@ -119,10 +128,13 @@ trigcountZ=0;
 for i=1:1:N-buffSize
 
     gyroBuff(i:i+buffSize-1,:) = GyroXYZ(i:i+buffSize-1,:);
-    %gyroMaxAbsAvg(i) = max(abs(mean(gyroBuff))); %Ong's
-    gyroMaxAbsAvg(i,1) = max(abs(mean(gyroBuff(i,1))));
-    gyroMaxAbsAvg(i,2) = max(abs(mean(gyroBuff(i,2))));
-    gyroMaxAbsAvg(i,3) = max(abs(mean(gyroBuff(i,3))));
+    %     %Ong's- gyroMaxAbsAvg(i) = max(abs(mean(gyroBuff)));
+    %     gyroMaxAbsAvg(i,1) = max(abs(mean(gyroBuff(i,1))));
+    %     gyroMaxAbsAvg(i,2) = max(abs(mean(gyroBuff(i,2))));
+    %     gyroMaxAbsAvg(i,3) = max(abs(mean(gyroBuff(i,3))));
+    gyroMaxAbsAvg(i,1) = max(abs(mean(gyroBuff(i:i+buffSize-1,1))));
+    gyroMaxAbsAvg(i,2) = max(abs(mean(gyroBuff(i:i+buffSize-1,2))));
+    gyroMaxAbsAvg(i,3) = max(abs(mean(gyroBuff(i:i+buffSize-1,3))));
     acceleroBuff = AcceleroXYZ(i:i+buffSize-1,:);
     acceleroAvg(i,:) = mean(acceleroBuff);
     magnetoBuff = MagnetoXYZ(i:i+buffSize-1,:);
@@ -190,7 +202,7 @@ for i=1:1:N-buffSize
     %UnbiasedXYZ(i,:) = GyroXYZ(i,:) - (2 * Bias(i,:));
 
     %% Compute Quaternion
-    if(i~=1)
+    if(i > 1)
 
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
@@ -271,12 +283,17 @@ for i=1:1:N-buffSize
     qGM_pl(i,:)=qGM(i,:);
 
     qOUT0(i,:) = QSLERP(qGM(i,:),qGA(i,:),alpha(i)); %Original Ong's
+    
+    %j4db 
+%     if (i >= 1420 && i <= 1450)
+%         mufake(i) = 0;
+%     end
 
     %edit by Nann 8/11/2021
     qSM(i,:) = QSLERP(qG(i,:),qGM(i,:),mufake(i));
     qSA(i,:) = QSLERP(qG(i,:),qGA(i,:),alpha(i));
     qOUT1(i,:) = QSLERP(qSM(i,:),qSA(i,:),alpha(i));
-
+    qNorm(i, :) = norm(qOUT1(i,:));
     %edit by nann 11/4/2020
 
 
@@ -288,7 +305,10 @@ for i=1:1:N-buffSize
     Mag30= mean(magnetInert(1:30,:));
     MagMag30 = sqrt(Mag30 * (Mag30'));
 
-
+    % j4db
+%     if (i == 1500)
+%         qOUT1(i,:) = qOUT1Baseline(i,:);
+%     end
     %***************COMMENT FOR AB
     %The version that is effectively used is control by the variable NANN
     %  nann=1;  % Variable nann is now set at the BEGINNING
@@ -352,6 +372,7 @@ KM1 =  1 - Magpenalty;
 KM = (KM1 + abs(KM1) )/2;
 
 tiledlayout(5, 1)
+
 ax1 = nexttile;
 plot(ax1, KM, 'r');
 title('kmu magnitude');
@@ -364,28 +385,38 @@ ax2 = nexttile;
 plot(ax2, kmuang);
 title('kmu angle'); grid on;
 
-
+kmuang_avg = (kmuang .* KM);
 ax3 = nexttile;
-plot(ax3, mu4plot); grid on;
-title('mu from the recorded file')
+plot(ax3, [kmuang_avg mu]); grid on;
+title('KM mu')
+
+ax4 = nexttile;
+plot(ax4, alpha); grid on;
+title('alpha')
+
+% ax4 = nexttile;
+% plot(ax4, [mu4plot]); grid on;
+% title('mu from the recorded file')
 % Now plot mu frm recording and kmuang together
 % figure;
 % plot(mu4plot); hold; plot(kmuang,'r');hold off; grid on;
 % title(' mu form record in BLUE and kmuang in RED');
 
-ax4 = nexttile;
-plot(ax4, (kmuang+KM)/2); grid on;
-title('avg mu')
+% r = 1;
+% p = 1;
+% kmua = kmuafunct(kmuang, 1, 1);
+% ax5 = nexttile;
+% plot(ax5, (kmuang.*KM)+0.5); grid on;
+% title('kmua')
 
-r = 1;
-p = 1;
-kmua = kmuafunct(kmuang, 1, 1);
 ax5 = nexttile;
-plot(ax5, (kmuang.*KM)+0.5); grid on;
-title('kmua')
+plot(ax5, qOUT1); grid on;
+title('qOUT1')
+% 
+% ax6 = nexttile;
+% plot(ax6, qNorm); grid on;
+% title('qNorm')
 
-
-plot(qOUT1);
 
 % kmub = kmubfunct(kmuang, 1, 1);
 % ax6 = nexttile;

@@ -1,11 +1,10 @@
-clear all;
 clc;
 nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 
 %% Read recording data from file
-[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha,mu] = readRecordingFile('Data001.txt');
-mu4plot = mu;  % Because "mu" is changed later in the program
-mufake = mu; %zeros(size(mu));
+[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha,mu] = readRecordingFile('Data002.txt');
+% mu4plot = mu;  % Because "mu" is changed later in the program
+mufake = zeros(size(mu));
 % clear mu;
 % figure; plot( ((mu4plot * 6)-3),'m');
 
@@ -66,7 +65,13 @@ qOUT1 = zeros(N,4);
 SlerpM = zeros(N,4);
 SlerpA = zeros(N,4);
 
-kmuang= zeros(N,1);    %Array to hold all the values of kmuang to be calculated
+kmuang = zeros(N, 1);    %Array to hold all the values of kmuang to be calculated
+kmmag = zeros(N, 1);
+minertmag = zeros(N, 1);
+NMagnitudeMagInert = zeros(N, 1);
+angchg = zeros(N, 1);
+Magpenalty = zeros(N, 1);
+KM1 = zeros(N, 1);
 
 A_int = [AcceleroXYZ(1,:) 0]; % First measured gravity vector sample
 a4 = zeros(N,4); % Computed Gravity Vector (Pure Quaternion)
@@ -93,10 +98,10 @@ trigcountZ=0;
 for i=1:1:N-buffSize
 
     gyroBuff(i:i+buffSize-1,:) = GyroXYZ(i:i+buffSize-1,:);
-%     %Ong's- gyroMaxAbsAvg(i) = max(abs(mean(gyroBuff))); 
-%     gyroMaxAbsAvg(i,1) = max(abs(mean(gyroBuff(i,1))));
-%     gyroMaxAbsAvg(i,2) = max(abs(mean(gyroBuff(i,2))));
-%     gyroMaxAbsAvg(i,3) = max(abs(mean(gyroBuff(i,3))));
+    %     %Ong's- gyroMaxAbsAvg(i) = max(abs(mean(gyroBuff)));
+    %     gyroMaxAbsAvg(i,1) = max(abs(mean(gyroBuff(i,1))));
+    %     gyroMaxAbsAvg(i,2) = max(abs(mean(gyroBuff(i,2))));
+    %     gyroMaxAbsAvg(i,3) = max(abs(mean(gyroBuff(i,3))));
     gyroMaxAbsAvg(i,1) = max(abs(mean(gyroBuff(i:i+buffSize-1,1))));
     gyroMaxAbsAvg(i,2) = max(abs(mean(gyroBuff(i:i+buffSize-1,2))));
     gyroMaxAbsAvg(i,3) = max(abs(mean(gyroBuff(i:i+buffSize-1,3))));
@@ -272,7 +277,12 @@ for i=1:1:N-buffSize
     km2 = (1+ km1)/2;
     kmuang(i) =  ( km2 + (abs(km2)))/2;
 
-
+    minertmag(i) = my3dvnorm(magnetInert(i, :)); % [3099           3]
+    NMagnitudeMagInert(i) = minertmag(i) / MagMag30;
+    angchg(i) = anginertchg(magnetInert(i, :));
+    Magpenalty(i) = NMagnitudeMagInert((i)' .* angchg(i));
+    KM1(i) =  1 - Magpenalty;
+    kmmag(i) = (KM1(i) + abs(KM1(i))) / 2;
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
@@ -293,16 +303,18 @@ end
 % Plot the accelerations mapped back to Inert Frame {AB Jan 2022}
 % figure; plot(accelInert);
 % figure; plot(magnetInert);
-minertmag = my3dvnorm(magnetInert);
-NMagnitudeMagInert = minertmag / MagMag30;
-angchg = anginertchg(magnetInert);
-Magpenalty = NMagnitudeMagInert' .* angchg;
-KM1 =  1 - Magpenalty;
-KM = (KM1 + abs(KM1) )/2;
+
+% minertmag = my3dvnorm(magnetInert); % [3099           3]
+% NMagnitudeMagInert = minertmag / MagMag30;
+% angchg = anginertchg(magnetInert);
+% Magpenalty = NMagnitudeMagInert' .* angchg;
+% KM1 =  1 - Magpenalty;
+% kmmag = (KM1 + abs(KM1) )/2;
 
 tiledlayout(5, 1)
+
 ax1 = nexttile;
-plot(ax1, KM, 'r');
+plot(ax1, kmmag, 'r');
 title('kmu magnitude');
 % figure; plot(KM, 'r');title('KM')
 
@@ -313,18 +325,18 @@ ax2 = nexttile;
 plot(ax2, kmuang);
 title('kmu angle'); grid on;
 
-% kmuang_avg = (kmuang+KM)/2;
-% ax3 = nexttile;
-% plot(ax3, kmuang_avg); grid on;
-% title('avg mu')
-
+kmuang_avg = (kmuang + kmmag)/2;
 ax3 = nexttile;
-plot(ax3, alpha); grid on;
-title('alpha')
+plot(ax3, kmuang_avg); grid on;
+title('avg mu')
 
 ax4 = nexttile;
-plot(ax4, [mu4plot]); grid on;
-title('mu from the recorded file')
+plot(ax4, alpha); grid on;
+title('alpha')
+
+% ax4 = nexttile;
+% plot(ax4, [mu4plot]); grid on;
+% title('mu from the recorded file')
 % Now plot mu frm recording and kmuang together
 % figure;
 % plot(mu4plot); hold; plot(kmuang,'r');hold off; grid on;
@@ -346,11 +358,11 @@ title('qOUT1')
 % [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha,mu] = readRecordingFile('Data001.txt');
 % t_diff = diff(t);
 % t_diff_avg = mean(t_diff);
-% 
+%
 % t_diff_max = max(t_diff);
-% 
-% 
-% 
+%
+%
+%
 % figure
 % plot(t_diff(3:end));
 % title('Average sampling interval is ', (t_diff_avg));
