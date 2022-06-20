@@ -20,7 +20,8 @@ for n = 1:numvects
     MTXnow = MTXvect(n,:);
     MagMTXnow = sqrt(MTXnow * (MTXnow'));
     % calculate cos of eta , hich is the angle beteen MTXnow and Minit
-    coseta = (MTXnow * (Minit')) / (MagMinit * MagMTXnow);
+    coseta = (MTXnow * (Minit'));
+    coseta = coseta / (MagMinit * MagMTXnow);
     % the take inverse cosine to obtain anle eta which is returned  angchg
     angchg(n) = acos(coseta);
 end

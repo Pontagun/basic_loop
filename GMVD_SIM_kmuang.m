@@ -14,13 +14,13 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha,mu] = readRecordingFile('Data001.txt');
 mu4plot = mu;  % Because "mu" is changed later in the program
 
-if exist('kmuang', 'var') && exist('KM', 'var')
-    mufake = circshift(kmuang_avg',[0,-1])';
-else
-    mufake = mu;
-    mufake(1408:3099, :) = 0;
-    disp('mufake is mu from reading, execute program again to remove 0');
-end
+% if exist('kmuang', 'var') && exist('kmmag', 'var')
+%     mufake = circshift(kmuang_avg',[0,-1])';
+% else
+%     mufake = mu;
+%     mufake(1408:3099, :) = 0;
+%     disp('mufake is mu from reading, execute program again to remove 0');
+% end
 
 % figure; plot( ((mu4plot * 6)-3),'m');
 
@@ -70,13 +70,15 @@ dt = 1/SR;
 
 accelInert = zeros(N,3);  % Will store accel mapped BACK to inert frm
 magnetInert = zeros(N,3);  % Will store magnt mapped BACK to inert frm
-minertmag = zeros(N, 3);
+minertmag = zeros(N, 1);
 
-angchg = zeros(N, 3);
-NMagnitudeMagInert = zeros(N, 3);
-Magpenalty = zeros(N, 3);
-kmmag1 = zeros(N, 3);
-kmmag = zeros(N, 3);
+angchg = zeros(N, 1);
+NMagnitudeMagInert = zeros(N, 1);
+Magpenalty = zeros(N, 1);
+kmmag1 = zeros(N, 1);
+kmmag = zeros(N, 1);
+kmavg = zeros(N, 1);
+mufake = zeros(N, 1);
 
 qG = zeros(N,4);
 qG_pl = zeros(N,4);
@@ -208,7 +210,7 @@ for i=1:1:N-buffSize
 
     %% Compute Quaternion
     if(i > 1)
-
+        mufake(i) = kmavg(i-1);
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
         dqG(i,:) = 0.5 * myQuatProd(qG(i-1,:),w);
@@ -336,17 +338,17 @@ for i=1:1:N-buffSize
     km2 = (1 + km1)/2;
     kmuang(i) =  ( km2 + (abs(km2)))/2;
 
+    %% Calculating kmmag
+    minertmag(i) = my3dvnorm(magnetInert(i,:))';
+    angchg(i) = anginertchg(magnetInert(i,:), magn100);
 
-%     minertmag0 = my3dvnorm(magnetInert(i,:));
-%     angchg0 = anginertchg(magnetInert(i,:), magn100);
-% 
-%     NMagnitudeMagInert0 = minertmag0(i,:) / magnMag100;
-%     Magpenalty0 = NMagnitudeMagInert0' .* angchg0;
-% 
-% 
-%     kmmag1(i,:) =  1 - Magpenalty(i,:);
-%     kmmag(i,:) = (kmmag1(i,:) + abs(kmmag1(i,:)) )/2;
+    NMagnitudeMagInert(i) = minertmag(i) / magnMag100;
+    Magpenalty(i) = NMagnitudeMagInert(i) .* angchg(i);
 
+    kmmag1(i) =  1 - Magpenalty(i);
+    kmmag(i) = (kmmag1(i) + abs(kmmag1(i)) )/2;
+    
+    kmavg(i) = (kmuang(i) .* kmmag(i));
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
@@ -368,10 +370,10 @@ end
 % figure; plot(accelInert);
 % figure; plot(magnetInert);
 
-% minertmag = my3dvnorm(magnetInert);
-% angchg = anginertchg(magnetInert, magn100);
+% minertmag = my3dvnorm(magnetInert); % 1        3099
+% angchg = anginertchg(magnetInert, magn100); % 3099           1
 % 
-% NMagnitudeMagInert = minertmag / magnMag100;
+% NMagnitudeMagInert = minertmag / magnMag100; % 1        3099
 % Magpenalty = NMagnitudeMagInert' .* angchg;
 % 
 % 
@@ -394,9 +396,8 @@ ax2 = nexttile;
 plot(ax2, kmuang);
 title('kmu angle'); grid on;
 
-kmuang_avg = (kmuang .* KM);
 ax3 = nexttile;
-plot(ax3, [kmuang_avg mu]); grid on;
+plot(ax3, [kmavg mu]); grid on;
 title('KM mu')
 
 ax4 = nexttile;
