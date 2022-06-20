@@ -72,6 +72,12 @@ accelInert = zeros(N,3);  % Will store accel mapped BACK to inert frm
 magnetInert = zeros(N,3);  % Will store magnt mapped BACK to inert frm
 minertmag = zeros(N, 3);
 
+angchg = zeros(N, 3);
+NMagnitudeMagInert = zeros(N, 3);
+Magpenalty = zeros(N, 3);
+kmmag1 = zeros(N, 3);
+kmmag = zeros(N, 3);
+
 qG = zeros(N,4);
 qG_pl = zeros(N,4);
 qG(1,:) = [0 0 0 1];
@@ -330,6 +336,17 @@ for i=1:1:N-buffSize
     km2 = (1 + km1)/2;
     kmuang(i) =  ( km2 + (abs(km2)))/2;
 
+
+%     minertmag0 = my3dvnorm(magnetInert(i,:));
+%     angchg0 = anginertchg(magnetInert(i,:), magn100);
+% 
+%     NMagnitudeMagInert0 = minertmag0(i,:) / magnMag100;
+%     Magpenalty0 = NMagnitudeMagInert0' .* angchg0;
+% 
+% 
+%     kmmag1(i,:) =  1 - Magpenalty(i,:);
+%     kmmag(i,:) = (kmmag1(i,:) + abs(kmmag1(i,:)) )/2;
+
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
@@ -350,14 +367,18 @@ end
 % Plot the accelerations mapped back to Inert Frame {AB Jan 2022}
 % figure; plot(accelInert);
 % figure; plot(magnetInert);
-minertmag = my3dvnorm(magnetInert);
-angchg = anginertchg(magnetInert);
 
-NMagnitudeMagInert = minertmag / magnMag100;
-Magpenalty = NMagnitudeMagInert' .* angchg;
+% minertmag = my3dvnorm(magnetInert);
+% angchg = anginertchg(magnetInert, magn100);
+% 
+% NMagnitudeMagInert = minertmag / magnMag100;
+% Magpenalty = NMagnitudeMagInert' .* angchg;
+% 
+% 
+% kmmag1 =  1 - Magpenalty;
+% kmmag = (kmmag1 + abs(kmmag1) )/2;
 
-kmmag1 =  1 - Magpenalty;
-kmmag = (kmmag1 + abs(kmmag1) )/2;
+
 
 tiledlayout(5, 1)
 
