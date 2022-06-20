@@ -70,6 +70,7 @@ dt = 1/SR;
 
 accelInert = zeros(N,3);  % Will store accel mapped BACK to inert frm
 magnetInert = zeros(N,3);  % Will store magnt mapped BACK to inert frm
+minertmag = zeros(N, 3);
 
 qG = zeros(N,4);
 qG_pl = zeros(N,4);
@@ -78,10 +79,8 @@ qG(1,:) = [0 0 0 1];
 dqG = zeros(N,4);
 
 qGA = zeros(N,4);
-qG_A = zeros(N,4);
 qGA_pl = zeros(N,4);
 qGA(1,:) = [0 0 0 1];
-qG_A = [0 0 0 1];
 dqGA = zeros(N,4);
 
 qGM = zeros(N,4);
@@ -101,7 +100,7 @@ qNorm = zeros(N);
 SlerpM = zeros(N,4);
 SlerpA = zeros(N,4);
 
-kmuang= zeros(N,1);    %Array to hold all the values of kmuang to be calculated
+kmuang= zeros(N,1);    % Array to hold all the values of kmuang to be calculated
 
 A_int = [AcceleroXYZ(1,:) 0]; % First measured gravity vector sample
 a4 = zeros(N,4); % Computed Gravity Vector (Pure Quaternion)
@@ -117,8 +116,8 @@ e_magnitude = zeros(N,1);
 trigcountX=0;
 trigcountY=0;
 trigcountZ=0;
-%% Clean up spikes in data Gyroscope data
 
+%% Clean up spikes in data Gyroscope data
 % GyroXYZ(:,1)= hampel(GyroXYZ(:,1),10,0.01);
 % GyroXYZ(:,2)= hampel(GyroXYZ(:,2),10,0.01);
 % GyroXYZ(:,3)= hampel(GyroXYZ(:,3),10,0.01);
@@ -251,16 +250,12 @@ for i=1:1:N-buffSize
     qv = cross(v1,v2);
     qw = sqrt((v1(1)^2 + v1(2)^2 + v1(3)^2)*(v2(1)^2 + v2(2)^2 + v2(3)^2)) + dot(v1,v2);
     deltaQa = myQuatNormalize([qv,qw]);
-    %deltaQa = [0 0 0 1];
-    %temp_qGA = myQuatNormalize(myQuatProd(qGA(i,:),deltaQa));
-    %end
 
     vm2 = m3(i,:);
     vm1 = magnetoAvg(i,:);
     qmv = cross(vm1,vm2);
     qmw = sqrt((vm1(1)^2 + vm1(2)^2 + vm1(3)^2)*(vm2(1)^2 + vm2(2)^2 + vm2(3)^2)) + dot(vm1,vm2);
     deltaQm = myQuatNormalize([qmv,qmw]);
-    %deltaQm = [0 0 0 1];
 
     % Quaternion Interpolation
     %alpha(i) = mean(Stillness(i:i+buffSize-1))^2;
@@ -284,7 +279,7 @@ for i=1:1:N-buffSize
 
     qOUT0(i,:) = QSLERP(qGM(i,:),qGA(i,:),alpha(i)); %Original Ong's
     
-    %j4db 
+%     j4db
 %     if (i >= 1420 && i <= 1450)
 %         mufake(i) = 0;
 %     end
@@ -297,15 +292,7 @@ for i=1:1:N-buffSize
     %edit by nann 11/4/2020
 
 
-    %% 2022-01-26_AB/PS  Computer 3 accelerations @ Inert Frm, from qOUT
-    % the results in accelInert will be used ONLY FOR MONITORING
-    accelInert(i,:) = qrotbak(qOUT1(i,:) , acceleroAvg(i,:));
-    magnetInert(i,:) = qrotbak(qOUT1(i,:) , magnetoAvg(i,:));
-
-    Mag30= mean(magnetInert(1:30,:));
-    MagMag30 = sqrt(Mag30 * (Mag30'));
-
-    % j4db
+%     j4db
 %     if (i == 1500)
 %         qOUT1(i,:) = qOUT1Baseline(i,:);
 %     end
@@ -323,26 +310,25 @@ for i=1:1:N-buffSize
         qGM(i,:) = qOUT0(i,:);
     end
 
+
+
+    %% 2022-01-26_AB/PS  Computer 3 accelerations @ Inert Frm, from qOUT
+    % the results in accelInert will be used ONLY FOR MONITORING
+    accelInert(i,:) = qrotbak(qOUT1(i,:), acceleroAvg(i,:));
+    magnetInert(i,:) = qrotbak(qOUT1(i,:), magnetoAvg(i,:));
+    
+    magn100 = mean(magnetInert(1:100,:));
+    magnMag100 = sqrt(magn100 * (magn100'));
+
+    %% mapBtoI functioanlly equals to qrotbak
+
     %% Calculating kmuang
-    % Map the current magnetometer measurement back to inertial frame
-    m0i = mapBtoI(qOUT1(i,:),magnetoAvg(i,:));   %m3(i,:) contains the "m0" in formulas
-    coskmuang = ( dot(m0i,M_int(1:3))  ) / ( (norm(m0i)) * (norm(M_int(1:3))) );
+    coskmuang = (dot(magnetInert(i,:),M_int(1:3)))/((norm(magnetInert(i,:))) * (norm(M_int(1:3))) );
     cosk2 = (coskmuang + 1)/2;
     slopekmua = 2;
     km1 = (-1 * slopekmua) * ( acos(coskmuang) )  + 1;
-    km2 = (1+ km1)/2;
+    km2 = (1 + km1)/2;
     kmuang(i) =  ( km2 + (abs(km2)))/2;
-
-    % r = 1;
-    % p = 1;
-    % kmuA = (-r * log( (p*(1 - cosk2)))); % r, p are adjustable parameters
-    %  % default p=r = 1
-    % kmuang(i) = kmuA;
-
-
-
-
-    % kmuang(i) = (coskmuang + 1)/2;
 
 end
 
@@ -365,16 +351,18 @@ end
 % figure; plot(accelInert);
 % figure; plot(magnetInert);
 minertmag = my3dvnorm(magnetInert);
-NMagnitudeMagInert = minertmag / MagMag30;
 angchg = anginertchg(magnetInert);
+
+NMagnitudeMagInert = minertmag / magnMag100;
 Magpenalty = NMagnitudeMagInert' .* angchg;
-KM1 =  1 - Magpenalty;
-KM = (KM1 + abs(KM1) )/2;
+
+kmmag1 =  1 - Magpenalty;
+kmmag = (kmmag1 + abs(kmmag1) )/2;
 
 tiledlayout(5, 1)
 
 ax1 = nexttile;
-plot(ax1, KM, 'r');
+plot(ax1, kmmag, 'r');
 title('kmu magnitude');
 % figure; plot(KM, 'r');title('KM')
 
