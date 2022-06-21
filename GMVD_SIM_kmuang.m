@@ -77,8 +77,9 @@ NMagnitudeMagInert = zeros(N, 1);
 Magpenalty = zeros(N, 1);
 kmmag1 = zeros(N, 1);
 kmmag = zeros(N, 1);
-kmavg = zeros(N, 1);
+kmmerge = zeros(N, 1);
 mufake = zeros(N, 1);
+KM = zeros(N, 1);
 
 qG = zeros(N,4);
 qG_pl = zeros(N,4);
@@ -210,7 +211,8 @@ for i=1:1:N-buffSize
 
     %% Compute Quaternion
     if(i > 1)
-        mufake(i) = kmavg(i-1);
+        mufake(i) = KM(i-1);
+%         mufake(i) = mu(i-1);
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
         dqG(i,:) = 0.5 * myQuatProd(qG(i-1,:),w);
@@ -318,8 +320,6 @@ for i=1:1:N-buffSize
         qGM(i,:) = qOUT0(i,:);
     end
 
-
-
     %% 2022-01-26_AB/PS  Computer 3 accelerations @ Inert Frm, from qOUT
     % the results in accelInert will be used ONLY FOR MONITORING
     accelInert(i,:) = qrotbak(qOUT1(i,:), acceleroAvg(i,:));
@@ -348,7 +348,19 @@ for i=1:1:N-buffSize
     kmmag1(i) =  1 - Magpenalty(i);
     kmmag(i) = (kmmag1(i) + abs(kmmag1(i)) )/2;
     
-    kmavg(i) = (kmuang(i) .* kmmag(i));
+    kmmerge(i) = (kmuang(i) .* kmmag(i));
+%     kmmerge(i) = mean([kmuang(i) kmmag(i)]);
+    
+    % Find the minimum value in WINDOW_SIZE included itself and backward to drop the
+    % calculated kmu faster.
+    win_s = 5;
+    if i > win_s 
+        tempkm = min(kmmerge(i-win_s:i));
+    else 
+        tempkm = kmmerge(i);
+    end
+    
+    KM(i) = tempkm;
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
@@ -359,12 +371,12 @@ end
 
 %% Print New Quaternion to a file
 
-% fprintQ(qG,qOUT);  % THIS IS ALSO CONTROLLED by var  nann
-if (nann==1)
-    fprintQ(qG,qOUT1);
-elseif (nann==0)
-    fprintQ(qG,qOUT0);
-end
+% % fprintQ(qG,qOUT);  % THIS IS ALSO CONTROLLED by var  nann
+% if (nann==1)
+%     fprintQ(qG,qOUT1);
+% elseif (nann==0)
+%     fprintQ(qG,qOUT0);
+% end
 
 % Plot the accelerations mapped back to Inert Frame {AB Jan 2022}
 % figure; plot(accelInert);
@@ -397,12 +409,16 @@ plot(ax2, kmuang);
 title('kmu angle'); grid on;
 
 ax3 = nexttile;
-plot(ax3, [kmavg mu]); grid on;
+plot(ax3, [KM mu]); grid on;
 title('KM mu')
 
+% ax4 = nexttile;
+% plot(ax4, alpha); grid on;
+% title('alpha')
+
 ax4 = nexttile;
-plot(ax4, alpha); grid on;
-title('alpha')
+plot(ax4, kmavg); grid on;
+title('kmavg')
 
 % ax4 = nexttile;
 % plot(ax4, [mu4plot]); grid on;
