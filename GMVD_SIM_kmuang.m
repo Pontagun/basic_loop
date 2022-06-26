@@ -80,6 +80,8 @@ kmmag = zeros(N, 1);
 kmmerge = zeros(N, 1);
 mufake = zeros(N, 1);
 KM = zeros(N, 1);
+alphamin = zeros(N, 1);
+alphamin2 = zeros(N, 1);
 
 qG = zeros(N,4);
 qG_pl = zeros(N,4);
@@ -211,8 +213,8 @@ for i=1:1:N-buffSize
 
     %% Compute Quaternion
     if(i > 1)
-        mufake(i) = KM(i-1);
-%         mufake(i) = mu(i-1);
+%         mufake(i) = KM(i-1);
+        mufake(i) = mu(i-1);
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
         dqG(i,:) = 0.5 * myQuatProd(qG(i-1,:),w);
@@ -326,6 +328,7 @@ for i=1:1:N-buffSize
     magnetInert(i,:) = qrotbak(qOUT1(i,:), magnetoAvg(i,:));
     
     magn100 = mean(magnetInert(1:100,:));
+%     magn100 = mean(MagnetoXYZ(1:100, :));
     magnMag100 = sqrt(magn100 * (magn100'));
 
     %% mapBtoI functioanlly equals to qrotbak
@@ -333,7 +336,7 @@ for i=1:1:N-buffSize
     %% Calculating kmuang
     coskmuang = (dot(magnetInert(i,:),M_int(1:3)))/((norm(magnetInert(i,:))) * (norm(M_int(1:3))) );
     cosk2 = (coskmuang + 1)/2;
-    slopekmua = 2;
+    slopekmua = 3;
     km1 = (-1 * slopekmua) * ( acos(coskmuang) )  + 1;
     km2 = (1 + km1)/2;
     kmuang(i) =  ( km2 + (abs(km2)))/2;
@@ -348,8 +351,8 @@ for i=1:1:N-buffSize
     kmmag1(i) =  1 - Magpenalty(i);
     kmmag(i) = (kmmag1(i) + abs(kmmag1(i)) )/2;
     
-    kmmerge(i) = (kmuang(i) .* kmmag(i));
-%     kmmerge(i) = mean([kmuang(i) kmmag(i)]);
+%     kmmerge(i) = (kmuang(i) .* kmmag(i));
+    kmmerge(i) = mean([kmuang(i) kmmag(i)]);
     
     % Find the minimum value in WINDOW_SIZE included itself and backward to drop the
     % calculated kmu faster.
@@ -359,8 +362,23 @@ for i=1:1:N-buffSize
     else 
         tempkm = kmmerge(i);
     end
-    
-    KM(i) = tempkm;
+%     if i > 1408 && i < 1441
+%         KM(i) = 0;
+%     else
+%     KM(i) = tempkm; 
+% end
+    if i > 8
+        alphamin(i) = min(alpha(i-8:i));
+    else
+        alphamin(i) = alphamin(i);
+    end
+
+    % Linear function to accelerate decay 
+    aminslope = 4;
+    alphamin1 = (alphamin(i) * aminslope) - aminslope + 1;
+    alphamin2(i) = (alphamin1 + abs(alphamin1)) / 2; 
+
+    KM(i) = tempkm .* alphamin2(i); 
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
@@ -371,12 +389,12 @@ end
 
 %% Print New Quaternion to a file
 
-% % fprintQ(qG,qOUT);  % THIS IS ALSO CONTROLLED by var  nann
-% if (nann==1)
-%     fprintQ(qG,qOUT1);
-% elseif (nann==0)
-%     fprintQ(qG,qOUT0);
-% end
+% fprintQ(qG,qOUT);  % THIS IS ALSO CONTROLLED by var  nann
+if (nann==1)
+    fprintQ(qG,qOUT1);
+elseif (nann==0)
+    fprintQ(qG,qOUT0);
+end
 
 % Plot the accelerations mapped back to Inert Frame {AB Jan 2022}
 % figure; plot(accelInert);
@@ -394,31 +412,34 @@ end
 
 
 
-tiledlayout(5, 1)
+tiledlayout(4, 1)
 
 ax1 = nexttile;
-plot(ax1, kmmag, 'r');
-title('kmu magnitude');
+plot(ax1, kmuang, '.');
+hold on
+plot(ax1, kmmag);
+legend('kmang', 'kmmag')
+title('kmu by angle change, and kmu by magnitude');
 % figure; plot(KM, 'r');title('KM')
 
 
 % figure; plot(minertmag);
 % numvects = varrowtrc(magnetInert);
 ax2 = nexttile;
-plot(ax2, kmuang);
-title('kmu angle'); grid on;
+plot(ax2, mu);
+title('Mu recorded from the camera'); grid on;
 
 ax3 = nexttile;
-plot(ax3, [KM mu]); grid on;
-title('KM mu')
+plot(ax3, alpha); grid on;
+title('alpha')
 
 % ax4 = nexttile;
 % plot(ax4, alpha); grid on;
 % title('alpha')
 
-ax4 = nexttile;
-plot(ax4, kmavg); grid on;
-title('kmavg')
+% ax4 = nexttile;
+% plot(ax4, kmavg); grid on;
+% title('kmavg')
 
 % ax4 = nexttile;
 % plot(ax4, [mu4plot]); grid on;
@@ -437,7 +458,7 @@ title('kmavg')
 
 ax5 = nexttile;
 plot(ax5, qOUT1); grid on;
-title('qOUT1')
+title('Quaternions represent rotation')
 % 
 % ax6 = nexttile;
 % plot(ax6, qNorm); grid on;

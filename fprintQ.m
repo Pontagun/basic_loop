@@ -1,7 +1,7 @@
 function fprintQ(q_old,q_new)
 
-fp_old = fopen('Results/qBefore.txt','w');
-fp = fopen('Results/qAfter.txt','w');
+fp_old = fopen('Results/qBeforeKMU.txt','w');
+fp = fopen('Results/qAfterKMU.txt','w');
 
 for i=1:1:length(q_old)-50
     fprintf(fp_old,'%f,%f,%f,%f\n',q_old(i,1),q_old(i,2),q_old(i,3),q_old(i,4));
