@@ -70,7 +70,7 @@ dt = 1/SR;
 
 accelInert = zeros(N,3);  % Will store accel mapped BACK to inert frm
 magnetInert = zeros(N,3);  % Will store magnt mapped BACK to inert frm
-minertmag = zeros(N, 1);
+minertmag = ones(N, 1);
 
 angchg = zeros(N, 1);
 NMagnitudeMagInert = zeros(N, 1);
@@ -213,8 +213,8 @@ for i=1:1:N-buffSize
 
     %% Compute Quaternion
     if(i > 1)
-%         mufake(i) = KM(i-1);
-        mufake(i) = mu(i-1);
+        mufake(i) = KM(i-1);
+%         mufake(i) = mu(i-1);
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
         dqG(i,:) = 0.5 * myQuatProd(qG(i-1,:),w);
@@ -327,9 +327,8 @@ for i=1:1:N-buffSize
     accelInert(i,:) = qrotbak(qOUT1(i,:), acceleroAvg(i,:));
     magnetInert(i,:) = qrotbak(qOUT1(i,:), magnetoAvg(i,:));
     
-    magn100 = mean(magnetInert(1:100,:));
-%     magn100 = mean(MagnetoXYZ(1:100, :));
-    magnMag100 = sqrt(magn100 * (magn100'));
+    magn30 = mean(magnetInert(1:30,:));
+    magnMag30 = sqrt(magn30 * (magn30'));
 
     %% mapBtoI functioanlly equals to qrotbak
 
@@ -338,14 +337,15 @@ for i=1:1:N-buffSize
     cosk2 = (coskmuang + 1)/2;
     slopekmua = 3;
     km1 = (-1 * slopekmua) * ( acos(coskmuang) )  + 1;
-    km2 = (1 + km1)/2;
-    kmuang(i) =  ( km2 + (abs(km2)))/2;
+    kmuang(i) = (1 + km1 + abs(1 + km1)) / 4;
+%     km2 = (1 + km1)/2;
+%     kmuang(i) =  ( km2 + (abs(km2)))/2;
 
     %% Calculating kmmag
     minertmag(i) = my3dvnorm(magnetInert(i,:))';
-    angchg(i) = anginertchg(magnetInert(i,:), magn100);
+    NMagnitudeMagInert(i) = minertmag(i) / magnMag30;
+    angchg(i) = anginertchg(magnetInert(i,:), magn30);
 
-    NMagnitudeMagInert(i) = minertmag(i) / magnMag100;
     Magpenalty(i) = NMagnitudeMagInert(i) .* angchg(i);
 
     kmmag1(i) =  1 - Magpenalty(i);

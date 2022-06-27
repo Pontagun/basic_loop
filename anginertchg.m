@@ -1,4 +1,4 @@
-function [angchg] = anginertchg(MTXvect, magn100)
+function [angchg] = anginertchg(MTXvect, magn30)
 % ANGINERTCHG Summary of this function goes here
 % Detailed explanation goes here
 % outputArg1 = inputArg1;
@@ -11,7 +11,7 @@ angchg = zeros(numvects,1);
 
 % getting avg of mag vector from initial 30 samples
 % Minit = mean(MTXvect(1:100,:));
-Minit = magn100;
+Minit = magn30;
 MagMinit = sqrt(Minit * (Minit'));
 
 % at each sampling instant, calculte angle between MTX and Minit
