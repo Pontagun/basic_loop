@@ -334,6 +334,7 @@ for i=1:1:N-buffSize
 
     %% Calculating kmuang
     coskmuang = (dot(magnetInert(i,:),M_int(1:3)))/((norm(magnetInert(i,:))) * (norm(M_int(1:3))) );
+    aa(i) = coskmuang;
     cosk2 = (coskmuang + 1)/2;
     slopekmua = 3;
     km1 = (-1 * slopekmua) * ( acos(coskmuang) )  + 1;
@@ -412,63 +413,37 @@ end
 
 
 
-tiledlayout(4, 1)
+tiledlayout(6, 1)
 
 ax1 = nexttile;
 plot(ax1, kmuang, '.');
 hold on
 plot(ax1, kmmag);
 legend('kmang', 'kmmag')
-title('kmu by angle change, and kmu by magnitude');
-% figure; plot(KM, 'r');title('KM')
+title('\mu_{KA} and \mu_{KM}');
 
-
-% figure; plot(minertmag);
-% numvects = varrowtrc(magnetInert);
 ax2 = nexttile;
-plot(ax2, mu);
-title('Mu recorded from the camera'); grid on;
+plot(ax2, KM);
+title('\mu_K'); grid on;
 
 ax3 = nexttile;
-plot(ax3, alpha); grid on;
-title('alpha')
+plot(ax3, qOUT1); grid on;
+title('Components of q_{out} from \mu_K')
 
-% ax4 = nexttile;
-% plot(ax4, alpha); grid on;
-% title('alpha')
+ax4 = nexttile;
+plot(ax4, mu); grid on;
+title('\mu (request postion information)')
 
-% ax4 = nexttile;
-% plot(ax4, kmavg); grid on;
-% title('kmavg')
-
-% ax4 = nexttile;
-% plot(ax4, [mu4plot]); grid on;
-% title('mu from the recorded file')
-% Now plot mu frm recording and kmuang together
-% figure;
-% plot(mu4plot); hold; plot(kmuang,'r');hold off; grid on;
-% title(' mu form record in BLUE and kmuang in RED');
-
-% r = 1;
-% p = 1;
-% kmua = kmuafunct(kmuang, 1, 1);
-% ax5 = nexttile;
-% plot(ax5, (kmuang.*KM)+0.5); grid on;
-% title('kmua')
-
+% To get values, muanully run muq = qOUT1 with mu in file, after that run
+% with MUk later
 ax5 = nexttile;
-plot(ax5, qOUT1); grid on;
-title('Quaternions represent rotation')
-% 
-% ax6 = nexttile;
-% plot(ax6, qNorm); grid on;
-% title('qNorm')
+plot(ax5, muq); grid on;
+title('Components of q_{out} from \mu')
 
+ax6 = nexttile;
+plot(ax6, muq); grid on;
+title('Components of q_{out} from Kalman filter')
 
-% kmub = kmubfunct(kmuang, 1, 1);
-% ax6 = nexttile;
-% plot(ax6, kmub); grid on;
-% title('kmub');
 
 % figure; plot(hpfax); hold on; plot(hpfay, 'r'); plot(hpfaz,'g')
 
