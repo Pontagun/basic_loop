@@ -338,9 +338,11 @@ for i=1:1:N-buffSize
     coskmuang = (dot(magnetInert(i,:),M_int(1:3)))/((norm(magnetInert(i,:))) * (norm(M_int(1:3))) );
 %     cosk2 = (coskmuang + 1)/2
     gammaKmuang = acos(coskmuang);
-    slopekmua = 3;
-    km1 = 1 + (-1 * slopekmua) * gammaKmuang; % ------------------------------(14)
-    kmuang(i) = (1 + km1 + abs(1 + km1)) / 4;
+%     slopekmua = 3;
+%     km1 = 1 + (-1 * slopekmua) * gammaKmuang; % ------------------------------(14)
+%     kmuang(i) = (1 + km1 + abs(1 + km1)) / 4;
+    kmuang(i) = 1 - (1.5*gammaKmuang);
+    kmuang(i) =  ( kmuang(i) + (abs(kmuang(i))))/2;
     %% With slopekmua = 3, the  above is the same as kmuang(i) = 1 - (1.5*gammaKmuang), forcing non-negative
     %% This is to understand equation 14 in the 4 pages Sensors2022 conference paper.
 %     km2 = (1 + km1)/2;

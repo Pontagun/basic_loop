@@ -23,7 +23,7 @@ for n = 1:numvects
     coseta = (MTXnow * (Minit'));
     coseta = coseta / (MagMinit * MagMTXnow);
     % the take inverse cosine to obtain anle eta which is returned  angchg
-    angchg(n) = acos(coseta);
+    angchg(n) = real(acos(coseta));
 end
 
 

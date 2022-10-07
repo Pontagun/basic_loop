@@ -2,7 +2,7 @@ function [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha] = readRecordin
 
 label=FILENAME;
 fileID = fopen(FILENAME);
-readCell=textscan(fileID,'%f %f %f %f %f %f %f %f %f %f %f %f ','delimiter',',');
+readCell=textscan(fileID,'%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f','delimiter',',');
 fclose(fileID);
 
 t = readCell{1};
@@ -12,7 +12,7 @@ AcceleroXYZ = [readCell{6},readCell{7},readCell{8}];
 %IMUquat = [readCell{9},readCell{10},readCell{11},readCell{12}];
 MagnetoXYZ = [readCell{9},readCell{10},readCell{11}];
 alpha = [readCell{12}];
-mu = [readCell{13}];
+% mu = [readCell{13}];
 
 end
 
