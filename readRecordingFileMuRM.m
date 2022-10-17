@@ -1,4 +1,4 @@
-function [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha] = readRecordingFileMuRM(FILENAME)
+function [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, qGMVD] = readRecordingFileMuRM(FILENAME)
 
 label=FILENAME;
 fileID = fopen(FILENAME);
@@ -13,6 +13,6 @@ AcceleroXYZ = [readCell{6},readCell{7},readCell{8}];
 MagnetoXYZ = [readCell{9},readCell{10},readCell{11}];
 alpha = [readCell{12}];
 % mu = [readCell{13}];
-
+qGMVD = [readCell{13}, readCell{14}, readCell{15}, readCell{16}];
 end
 

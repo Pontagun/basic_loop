@@ -12,8 +12,8 @@ clc;
 nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 
 %% Read recording data from file
-% [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, mu] = readRecordingFile('Data001.txt');
-[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha] = readRecordingFileMuRM('rec133GMV1.txt');
+% [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, mu] = readRecordingFile('rec133GMV1.txt');
+[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, qGMVD] = readRecordingFileMuRM('rec133GMV1.txt');
 % mu4plot = mu;  % Because "mu" is changed later in the program
 
 % if exist('kmuang', 'var') && exist('kmmag', 'var')
@@ -416,25 +416,29 @@ end
 
 
 
-tiledlayout(3, 1)
+tiledlayout(4, 1)
 
 ax1 = nexttile;
 plot(ax1, kmuang, '.');
 hold on
 plot(ax1, kmmag);
 legend('\mu_{KA}', '\mu_{KM}')
-% title('\mu_{KA} and \mu_{KM}');
-title(' ');
+title('\mu_{KA} and \mu_{KM}');
+% title('');
 
 ax2 = nexttile;
 plot(ax2, KM);
-% title('\mu_K'); grid on;
-title(' ');
+title('\mu_K'); grid on;
+% title(' ');
 
 ax3 = nexttile;
 plot(ax3, qOUT1); grid on;
-% title('Components of q_{out} from \mu_K')
-title(' ');
+title('Components of q_{out} from \mu_K')
+% title(' ');
+
+ax4 = nexttile;
+plot(ax4, qGMVD); grid on;
+title('Components of q_{out} from GMVD')
 
 % ax4 = nexttile;
 % plot(ax4, mu); grid on;
