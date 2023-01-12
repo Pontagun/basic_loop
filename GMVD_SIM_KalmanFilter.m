@@ -108,7 +108,7 @@ qOUT0 = zeros(N,4);
 qSA = zeros(N,4);
 qSM = zeros(N,4);
 qOUT1 = zeros(N,4);
-
+EAout = zeros(N, 3);
 qNorm = zeros(N);
 
 SlerpM = zeros(N,4);
@@ -384,6 +384,10 @@ for i=1:1:N-buffSize
     alphamin2(i) = (alphamin1 + abs(alphamin1)) / 2; 
 
     KM(i) = tempkm .* alphamin2(i); 
+
+    [phi, theta, psi] = quat2eu(qOUT1(i,:));
+    EAout(i, :) = [phi, theta, psi];
+
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
@@ -445,5 +449,6 @@ ax5 = nexttile;
 plot(ax5, qKalman); grid on;
 title('Components of q_{out} from Kalman Filter')
 
+figure; plot(fliplr(EAout));
 
 

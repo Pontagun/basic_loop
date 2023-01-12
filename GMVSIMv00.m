@@ -75,6 +75,7 @@ qOUT0 = zeros(N,4);
 qSA = zeros(N,4);
 qSM = zeros(N,4);
 qOUT1 = zeros(N,4);
+EAout = zeros(N, 3);
 SlerpM = zeros(N,4);
 SlerpA = zeros(N,4);
 
@@ -268,7 +269,10 @@ elseif (nann==0)
         qGA(i,:) = qOUT0(i,:);
         qGM(i,:) = qOUT0(i,:);
 end
-        
+
+[phi, theta, psi] = quat2eu(qOUT1(i,:));
+EAout(i, :) = [phi, theta, psi];
+
 end
 
 %% Print New Quaternion to a file
@@ -280,11 +284,18 @@ elseif (nann==0)
     fprintQ(qG,qOUT0);
 end
 
+% [phi, theta, psi] = quat2eu(qOUT1(i,:));
+% 
+% EAout(i, :) = [phi, theta, psi];
+
 %% Minimum display to signal end of execution- Quaternion result
 % sp(11)=subplot(4,3,12);
 figure; plot(t(1:end-buffSize),qOUT1(1:end-buffSize,:),'LineWidth',1.0);
 axis([0 t(end) -1.1 1.1]);grid on;title('q_O_U_T');
 xlabel('Time (seconds)');
+
+% Plot EUout from calcuation
+figure; plot(fliplr(EAout));
 
 
 
