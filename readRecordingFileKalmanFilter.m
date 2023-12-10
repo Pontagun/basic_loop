@@ -1,4 +1,4 @@
-function [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, qGMVD, qKalman] = readRecordingFileMuRM(FILENAME)
+function [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, qGMVD, qKalman] = readRecordingFileKalmanFilter(FILENAME)
 
 label=FILENAME;
 fileID = fopen(FILENAME);

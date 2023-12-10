@@ -14,7 +14,8 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 
 %% Read recording data from file
 % [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, mu] = readRecordingFile('rec133GMV1.txt');
-[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,falpha, qGMVD] = readRecordingFileMuRM('rec042GMV1.txt');
+% [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,falpha, qGMVD] = readRecordingFileMuRM('rec133GMV1.txt');
+[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,falpha, qGMVD, qKalman] = readRecordingFileKalmanFilter('rec010GMV1.txt');
 % mu4plot = mu;  % Because "mu" is changed later in the program
 
 % if exist('kmuang', 'var') && exist('kmmag', 'var')
@@ -424,7 +425,15 @@ end
 
 
 
-tiledlayout(4, 1)
+tiledlayout(5, 1)
+
+ax0 = nexttile;
+plot(ax0, falpha, 'r');
+hold on;
+plot(ax0, alpha, 'b');
+legend('alpha file', 'alpha calc')
+title('Alpha comparison');
+
 
 ax1 = nexttile;
 plot(ax1, kmuang, '.');
