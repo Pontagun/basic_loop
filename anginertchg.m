@@ -4,6 +4,7 @@ function [angchg] = anginertchg(MTXvect, magn30)
 % outputArg1 = inputArg1;
 % outputArg2 = inputArg2;
 % SYNTAX:  [angchg] = anginertchg(MTXvect); MTXvect is magnetInert in main()
+% magn30 = mean of mean(magnetInert(1:30,:));
 
 [numvects, nc] = size(MTXvect);
 
@@ -20,8 +21,9 @@ for n = 1:numvects
     MTXnow = MTXvect(n,:);
     MagMTXnow = sqrt(MTXnow * (MTXnow'));
     % calculate cos of eta , hich is the angle beteen MTXnow and Minit
-    coseta = (MTXnow * (Minit'));
-    coseta = coseta / (MagMinit * MagMTXnow);
+    coseta = (MTXnow * (Minit')); % dot by sum
+    coseta = coseta / (MagMinit * MagMTXnow); % dot(a, b) = |a||b|cos(eta)
+    
     % the take inverse cosine to obtain anle eta which is returned  angchg
     angchg(n) = real(acos(coseta));
 end

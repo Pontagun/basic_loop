@@ -1,3 +1,4 @@
+clear;
 %% Demonstrate Real-Time Behavior
 %  kMUang ver 2 applying lin eq to accelerate kmuang decrease
 % ### The first output sample is determind after knowing first fifty samples of the sensors' data ###
@@ -13,7 +14,7 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 
 %% Read recording data from file
 % [label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, mu] = readRecordingFile('rec133GMV1.txt');
-[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,alpha, qGMVD] = readRecordingFileMuRM('rec133GMV1.txt');
+[label,t,Stillness,GyroXYZ,AcceleroXYZ,MagnetoXYZ,falpha, qGMVD] = readRecordingFileMuRM('rec042GMV1.txt');
 % mu4plot = mu;  % Because "mu" is changed later in the program
 
 % if exist('kmuang', 'var') && exist('kmmag', 'var')
@@ -23,7 +24,7 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 %     mufake(1408:3099, :) = 0;
 %     disp('mufake is mu from reading, execute program again to remove 0');
 % end
-% 
+%
 % figure; plot( ((mu4plot * 6)-3),'m');
 
 
@@ -62,9 +63,13 @@ acceleroBuff = zeros(buffSize,3);
 acceleroAvg = zeros(N,3);
 magnetoBuff = zeros(buffSize,3);
 magnetoAvg = zeros(N,3);
+
 Bias = zeros(N,3);
 BiasBuff = zeros(N,3);
+
 UnbiasedXYZ = zeros(N,3);
+
+
 %alpha = ones(size(Stillness));
 %AlpW = zeros(size(Stillness));
 StageM = zeros(size(Stillness));
@@ -129,6 +134,9 @@ e_magnitude = zeros(N,1);
 trigcountX=0;
 trigcountY=0;
 trigcountZ=0;
+
+% alpha = falpha;
+alpha = getalphafromaccel(AcceleroXYZ);
 
 %% Clean up spikes in data Gyroscope data
 % GyroXYZ(:,1)= hampel(GyroXYZ(:,1),10,0.01);
@@ -216,7 +224,7 @@ for i=1:1:N-buffSize
     %% Compute Quaternion
     if(i > 1)
         mufake(i) = KM(i-1);
-%         mufake(i) = mu(i-1);
+        %         mufake(i) = mu(i-1);
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
         dqG(i,:) = 0.5 * myQuatProd(qG(i-1,:),w);
@@ -292,11 +300,11 @@ for i=1:1:N-buffSize
     qGM_pl(i,:)=qGM(i,:);
 
     qOUT0(i,:) = QSLERP(qGM(i,:),qGA(i,:),alpha(i)); %Original Ong's
-    
-%     j4db
-%     if (i >= 1420 && i <= 1450)
-%         mufake(i) = 0;
-%     end
+
+    %     j4db
+    %     if (i >= 1420 && i <= 1450)
+    %         mufake(i) = 0;
+    %     end
 
     %edit by Nann 8/11/2021
     qSM(i,:) = QSLERP(qG(i,:),qGM(i,:),mufake(i));
@@ -306,10 +314,10 @@ for i=1:1:N-buffSize
     %edit by nann 11/4/2020
 
 
-%     j4db
-%     if (i == 1500)
-%         qOUT1(i,:) = qOUT1Baseline(i,:);
-%     end
+    %     j4db
+    %     if (i == 1500)
+    %         qOUT1(i,:) = qOUT1Baseline(i,:);
+    %     end
     %***************COMMENT FOR AB
     %The version that is effectively used is control by the variable NANN
     %  nann=1;  % Variable nann is now set at the BEGINNING
@@ -328,7 +336,7 @@ for i=1:1:N-buffSize
     % the results in accelInert will be used ONLY FOR MONITORING
     accelInert(i,:) = qrotbak(qOUT1(i,:), acceleroAvg(i,:));
     magnetInert(i,:) = qrotbak(qOUT1(i,:), magnetoAvg(i,:));
-    
+
     magn30 = mean(magnetInert(1:30,:));
     magnMag30 = sqrt(magn30 * (magn30'));
 
@@ -336,15 +344,15 @@ for i=1:1:N-buffSize
 
     %% Calculating kmuang
     coskmuang = (dot(magnetInert(i,:),M_int(1:3)))/((norm(magnetInert(i,:))) * (norm(M_int(1:3))) );
-%     cosk2 = (coskmuang + 1)/2
+    %     cosk2 = (coskmuang + 1)/2
     gammaKmuang = acos(coskmuang);
     slopekmua = 3;
     km1 = 1 + (-1 * slopekmua) * gammaKmuang; % ------------------------------(14)
     kmuang(i) = (1 + km1 + abs(1 + km1)) / 4;
     %% With slopekmua = 3, the  above is the same as kmuang(i) = 1 - (1.5*gammaKmuang), forcing non-negative
     %% This is to understand equation 14 in the 4 pages Sensors2022 conference paper.
-%     km2 = (1 + km1)/2;
-%     kmuang(i) =  ( km2 + (abs(km2)))/2;
+    %     km2 = (1 + km1)/2;
+    %     kmuang(i) =  ( km2 + (abs(km2)))/2;
     %% Calculating kmmag
     minertmag(i) = my3dvnorm(magnetInert(i,:))';
     NMagnitudeMagInert(i) = minertmag(i) / magnMag30;
@@ -354,41 +362,41 @@ for i=1:1:N-buffSize
 
     kmmag1(i) =  1 - Magpenalty(i);
     kmmag(i) = (kmmag1(i) + abs(kmmag1(i)) )/2;
-    
-%     kmmerge(i) = (kmuang(i) .* kmmag(i));
+
+    %     kmmerge(i) = (kmuang(i) .* kmmag(i));
     kmmerge(i) = mean([kmuang(i) kmmag(i)]);
-    
+
     % Find the minimum value in WINDOW_SIZE included itself and backward to drop the
     % calculated kmu faster.
     win_s = 5;
-    if i > win_s 
+    if i > win_s
         tempkm = min(kmmerge(i-win_s:i));
-    else 
+    else
         tempkm = kmmerge(i);
     end
-%     if i > 1408 && i < 1441
-%         KM(i) = 0;
-%     else
-%     KM(i) = tempkm; 
-% end
+    %     if i > 1408 && i < 1441
+    %         KM(i) = 0;
+    %     else
+    %     KM(i) = tempkm;
+    % end
     if i > 8
         alphamin(i) = min(alpha(i-8:i));
     else
         alphamin(i) = alphamin(i);
     end
 
-    % Linear function to accelerate decay 
+    % Linear function to accelerate decay
     aminslope = 4;
     alphamin1 = (alphamin(i) * aminslope) - aminslope + 1;
-    alphamin2(i) = (alphamin1 + abs(alphamin1)) / 2; 
+    alphamin2(i) = (alphamin1 + abs(alphamin1)) / 2;
 
-    KM(i) = tempkm .* alphamin2(i); 
+    KM(i) = tempkm .* alphamin2(i);
 end
 
 % 2021-12-24 AB, Fill last vals in accelInert  with same last value
-for nbx = (N-buffSize+1):N
-    accelInert(nbx,:) = accelInert(N-buffSize,:);
-end
+% for nbx = (N-buffSize+1):N
+%     accelInert(nbx,:) = accelInert(N-buffSize,:);
+% end
 
 
 %% Print New Quaternion to a file
@@ -406,11 +414,11 @@ end
 
 % minertmag = my3dvnorm(magnetInert); % 1        3099
 % angchg = anginertchg(magnetInert, magn100); % 3099           1
-% 
+%
 % NMagnitudeMagInert = minertmag / magnMag100; % 1        3099
 % Magpenalty = NMagnitudeMagInert' .* angchg;
-% 
-% 
+%
+%
 % kmmag1 =  1 - Magpenalty;
 % kmmag = (kmmag1 + abs(kmmag1) )/2;
 
@@ -433,7 +441,7 @@ title('\mu_K'); grid on;
 
 ax3 = nexttile;
 plot(ax3, qOUT1); grid on;
-title('Components of q_{out} from \mu_K')
+title('Components of q_{out} from \mu_K and \alpha_{accel}')
 % title(' ');
 
 ax4 = nexttile;
@@ -444,7 +452,7 @@ title('Components of q_{out} from GMVD')
 % plot(ax4, mu); grid on;
 % % title('\mu (requires postion information)')
 % title(' ');
-% 
+%
 % % To get values, muanully run muq = qOUT1; with mu in file, after that run
 % % with MUk later
 % ax5 = nexttile;
@@ -452,7 +460,7 @@ title('Components of q_{out} from GMVD')
 % % title('Components of q_{out} from \mu')
 % title(' ');
 
-% 
+%
 % ax6 = nexttile;
 % plot(ax6, muq); grid on;
 % title('Components of q_{out} from Kalman filter')
@@ -536,6 +544,4 @@ title('Components of q_{out} from GMVD')
 %
 %     linkaxes(sp,'x');
 %
-%
-
-
+%   

@@ -24,7 +24,7 @@ nann=1; % CONTROLS VERS: nann= 0 GMVS; nann= 1 GMVD
 %     mufake(1408:3099, :) = 0;
 %     disp('mufake is mu from reading, execute program again to remove 0');
 % end
-% 
+%
 % figure; plot( ((mu4plot * 6)-3),'m');
 
 
@@ -217,7 +217,7 @@ for i=1:1:N-buffSize
     %% Compute Quaternion
     if(i > 1)
         mufake(i) = KM(i-1);
-%         mufake(i) = mu(i-1);
+        %         mufake(i) = mu(i-1);
         w = [UnbiasedXYZ(i,1),UnbiasedXYZ(i,2),UnbiasedXYZ(i,3),0]; % Augment 0 to Angular velocity
 
         dqG(i,:) = 0.5 * myQuatProd(qG(i-1,:),w);
@@ -276,13 +276,13 @@ for i=1:1:N-buffSize
     %alpha(i) = mean(Stillness(i:i+buffSize-1))^2;
     %alpha(i)= 1;
     %get alpha directly from C# Nann edit 8/11/21
-    %COMMENT for AB : below is commented out to use the alpha from the file
-    %          if (i~=1)
-    %              AlpW=0.25;
-    %              alpha(i) = AlpW*(Stillness(i-1)^2)+(1-AlpW)*alpha(i-1); %Gamma Memory Filter
-    %              alpha(i) = alpha(i)*1;%Put in by nann 11/5/2020
-    %          end
-    %
+    % COMMENT for AB : below is commented out to use the alpha from the file
+    if (i~=1)
+        AlpW=0.25;
+        alphacal(i) = AlpW*((Stillness(i-1)/3)^2)+(1-AlpW)*alpha(i-1); %Gamma Memory Filter
+        alphacal(i) = alpha(i)*1;%Put in by nann 11/5/2020
+    end
+
 
     qGM(i,:) = myQuatNormalize(myQuatProd(qGM(i,:),deltaQm));
     qGA(i,:) = myQuatNormalize(myQuatProd(qGA(i,:),deltaQa)); %Put in by nann 11/5/2020
@@ -293,11 +293,11 @@ for i=1:1:N-buffSize
     qGM_pl(i,:)=qGM(i,:);
 
     qOUT0(i,:) = QSLERP(qGM(i,:),qGA(i,:),alpha(i)); %Original Ong's
-    
-%     j4db
-%     if (i >= 1420 && i <= 1450)
-%         mufake(i) = 0;
-%     end
+
+    %     j4db
+    %     if (i >= 1420 && i <= 1450)
+    %         mufake(i) = 0;
+    %     end
 
     %edit by Nann 8/11/2021
     qSM(i,:) = QSLERP(qG(i,:),qGM(i,:),mufake(i));
@@ -307,10 +307,10 @@ for i=1:1:N-buffSize
     %edit by nann 11/4/2020
 
 
-%     j4db
-%     if (i == 1500)
-%         qOUT1(i,:) = qOUT1Baseline(i,:);
-%     end
+    %     j4db
+    %     if (i == 1500)
+    %         qOUT1(i,:) = qOUT1Baseline(i,:);
+    %     end
     %***************COMMENT FOR AB
     %The version that is effectively used is control by the variable NANN
     %  nann=1;  % Variable nann is now set at the BEGINNING
@@ -329,7 +329,7 @@ for i=1:1:N-buffSize
     % the results in accelInert will be used ONLY FOR MONITORING
     accelInert(i,:) = qrotbak(qOUT1(i,:), acceleroAvg(i,:));
     magnetInert(i,:) = qrotbak(qOUT1(i,:), magnetoAvg(i,:));
-    
+
     magn30 = mean(magnetInert(1:30,:));
     magnMag30 = sqrt(magn30 * (magn30'));
 
@@ -337,15 +337,15 @@ for i=1:1:N-buffSize
 
     %% Calculating kmuang
     coskmuang = (dot(magnetInert(i,:),M_int(1:3)))/((norm(magnetInert(i,:))) * (norm(M_int(1:3))) );
-%     cosk2 = (coskmuang + 1)/2
+    %     cosk2 = (coskmuang + 1)/2
     gammaKmuang = acos(coskmuang);
     slopekmua = 3;
     km1 = 1 + (-1 * slopekmua) * gammaKmuang; % ------------------------------(14)
     kmuang(i) = (1 + km1 + abs(1 + km1)) / 4;
     %% With slopekmua = 3, the  above is the same as kmuang(i) = 1 - (1.5*gammaKmuang), forcing non-negative
     %% This is to understand equation 14 in the 4 pages Sensors2022 conference paper.
-%     km2 = (1 + km1)/2;
-%     kmuang(i) =  ( km2 + (abs(km2)))/2;
+    %     km2 = (1 + km1)/2;
+    %     kmuang(i) =  ( km2 + (abs(km2)))/2;
     %% Calculating kmmag
     minertmag(i) = my3dvnorm(magnetInert(i,:))';
     NMagnitudeMagInert(i) = minertmag(i) / magnMag30;
@@ -355,35 +355,35 @@ for i=1:1:N-buffSize
 
     kmmag1(i) =  1 - Magpenalty(i);
     kmmag(i) = (kmmag1(i) + abs(kmmag1(i)) )/2;
-    
-%     kmmerge(i) = (kmuang(i) .* kmmag(i));
+
+    %     kmmerge(i) = (kmuang(i) .* kmmag(i));
     kmmerge(i) = mean([kmuang(i) kmmag(i)]);
-    
+
     % Find the minimum value in WINDOW_SIZE included itself and backward to drop the
     % calculated kmu faster.
     win_s = 5;
-    if i > win_s 
+    if i > win_s
         tempkm = min(kmmerge(i-win_s:i));
-    else 
+    else
         tempkm = kmmerge(i);
     end
-%     if i > 1408 && i < 1441
-%         KM(i) = 0;
-%     else
-%     KM(i) = tempkm; 
-% end
+    %     if i > 1408 && i < 1441
+    %         KM(i) = 0;
+    %     else
+    %     KM(i) = tempkm;
+    % end
     if i > 8
         alphamin(i) = min(alpha(i-8:i));
     else
         alphamin(i) = alphamin(i);
     end
 
-    % Linear function to accelerate decay 
+    % Linear function to accelerate decay
     aminslope = 4;
     alphamin1 = (alphamin(i) * aminslope) - aminslope + 1;
-    alphamin2(i) = (alphamin1 + abs(alphamin1)) / 2; 
+    alphamin2(i) = (alphamin1 + abs(alphamin1)) / 2;
 
-    KM(i) = tempkm .* alphamin2(i); 
+    KM(i) = tempkm .* alphamin2(i);
 
     [phi, theta, psi] = quat2eu(qOUT1(i,:));
     EAout(i, :) = [phi, theta, psi];
@@ -411,11 +411,11 @@ end
 
 % minertmag = my3dvnorm(magnetInert); % 1        3099
 % angchg = anginertchg(magnetInert, magn100); % 3099           1
-% 
+%
 % NMagnitudeMagInert = minertmag / magnMag100; % 1        3099
 % Magpenalty = NMagnitudeMagInert' .* angchg;
-% 
-% 
+%
+%
 % kmmag1 =  1 - Magpenalty;
 % kmmag = (kmmag1 + abs(kmmag1) )/2;
 
@@ -450,5 +450,6 @@ plot(ax5, qKalman); grid on;
 title('Components of q_{out} from Kalman Filter')
 
 figure; plot(fliplr(EAout));
+title('Quaternion to Euler angle plot');
 
 
